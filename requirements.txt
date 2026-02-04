@@ -1,6 +1,11 @@
+# Use Python 3.11 for Streamlit compatibility
 python==3.11
-streamlit
+
+# Core libraries
 pandas==3.0.0
 scikit-learn==1.8.0
 joblib
+
+# Streamlit and visualization
+streamlit==1.26.0
 altair==4.2.2

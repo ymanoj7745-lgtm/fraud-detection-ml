@@ -15,7 +15,7 @@ import streamlit as st
 MODEL_PATH = Path("fraud_detection_pipeline.pkl")
 
 try:
-    model = joblib.load(MODEL_PATH)
+    model = joblib.load("fraud_detection_pipeline.pkl")
     st.write("✅ Model loaded successfully!")
 except Exception as e:
     st.error(f"❌ Error loading model: {e}")

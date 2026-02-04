@@ -1,8 +1,5 @@
-# Core libraries
-pandas==3.0.0
-scikit-learn==1.8.0
+streamlit
+pandas>=1.5
+scikit-learn>=1.2
 joblib
-
-# Streamlit and visualization
-streamlit==1.26.0
-altair==4.2.2
+altair<5

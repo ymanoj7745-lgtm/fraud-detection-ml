@@ -8,7 +8,17 @@ st.set_page_config(page_title="Fraud Detection", layout="centered")
 def load_model():
     return joblib.load("fraud_detection_pipeline.pkl")
 
-model = load_model()
+import joblib
+from pathlib import Path
+import streamlit as st
+
+MODEL_PATH = Path("fraud_detection_pipeline.pkl")
+
+try:
+    model = joblib.load(MODEL_PATH)
+    st.write("✅ Model loaded successfully!")
+except Exception as e:
+    st.error(f"❌ Error loading model: {e}")
 
 st.title("💳 Fraud Detection System")
 st.write("Predict whether a financial transaction is fraudulent")

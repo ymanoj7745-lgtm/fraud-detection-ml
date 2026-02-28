@@ -1,8 +1,8 @@
 streamlit>=1.10,<2
 pandas>=1.5
 numpy>=1.23
-scikit-learn==0.24.2
-imbalanced-learn==0.12
+scikit-learn>=1.2   # instead of 0.24.2
+imbalanced-learn>=0.12
 joblib>=1.2
 altair<5
 matplotlib>=3.7

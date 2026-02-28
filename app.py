@@ -4,6 +4,7 @@ import numpy as np
 import joblib
 import altair as alt
 from pathlib import Path
+from typing import Optional
 import os
 import sys
 import importlib
@@ -47,7 +48,8 @@ except ModuleNotFoundError:
 # -----------------------------
 MODEL_FILENAME = "fraud_detection_pipeline.pkl"
 
-def find_pipeline_file(filename: str, start_dir: Path) -> Path | None:
+def find_pipeline_file(filename: str, start_dir: Path) -> Optional[Path]:
+    """Recursively search for the pipeline file starting from start_dir."""
     for root, dirs, files in os.walk(start_dir):
         if filename in files:
             return Path(root) / filename

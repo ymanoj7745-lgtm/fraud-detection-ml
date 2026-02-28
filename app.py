@@ -1,9 +1,12 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 import joblib
 import altair as alt
 from pathlib import Path
 import os
+import sys
+import importlib
 
 # -----------------------------
 # Page config
@@ -22,13 +25,29 @@ Enter transaction details on the sidebar and check the risk instantly.
 """)
 
 # -----------------------------
-# Load model (cross-platform)
+# BASE_DIR for project
 # -----------------------------
 BASE_DIR = Path(__file__).resolve().parent
+
+# -----------------------------
+# Ensure main.py is importable for pickled pipeline
+# -----------------------------
+if str(BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(BASE_DIR))
+
+try:
+    main_mod = importlib.import_module("main")
+    sys.modules["main"] = main_mod
+    sys.modules["__main__"] = main_mod
+except ModuleNotFoundError:
+    pass
+
+# -----------------------------
+# Load pipeline (auto-detect)
+# -----------------------------
 MODEL_FILENAME = "fraud_detection_pipeline.pkl"
 
 def find_pipeline_file(filename: str, start_dir: Path) -> Path | None:
-    """Recursively search for the pipeline file starting from start_dir."""
     for root, dirs, files in os.walk(start_dir):
         if filename in files:
             return Path(root) / filename
@@ -39,7 +58,7 @@ MODEL_PATH = find_pipeline_file(MODEL_FILENAME, BASE_DIR)
 if MODEL_PATH and MODEL_PATH.exists():
     try:
         model = joblib.load(MODEL_PATH)
-        st.success(f"✅ Model loaded: `{MODEL_PATH.name}`")
+        st.success(f"✅ Model loaded: {MODEL_PATH.name}")
     except Exception as e:
         model = None
         st.error(f"❌ Error loading model: {e}")
@@ -51,7 +70,7 @@ else:
 # Sidebar inputs
 # -----------------------------
 st.sidebar.header("Transaction Details")
-threshold = st.sidebar.slider("Fraud threshold", min_value=0.01, max_value=0.99, value=0.90, step=0.01)
+threshold = st.sidebar.slider("Fraud threshold", 0.01, 0.99, 0.90, 0.01)
 step = st.sidebar.number_input("Step (time step)", min_value=0, value=0, step=1)
 type_ = st.sidebar.selectbox("Transaction Type", ["CASH_IN", "CASH_OUT", "DEBIT", "PAYMENT", "TRANSFER"])
 amount = st.sidebar.number_input("Transaction Amount", min_value=0.0, value=0.0)
@@ -64,7 +83,6 @@ newbalanceDest = st.sidebar.number_input("New Balance (Receiver)", min_value=0.0
 # Predict button
 # -----------------------------
 def _st_button(label: str, *, disabled: bool) -> bool:
-    """Streamlit button wrapper with backward compatibility."""
     try:
         return bool(st.button(label, disabled=disabled))
     except TypeError:
@@ -92,7 +110,7 @@ if _st_button("Check Fraud", disabled=model is None):
         st.stop()
 
     # -----------------------------
-    # Display as colored cards
+    # Display cards
     # -----------------------------
     col1, col2 = st.columns(2)
     risk_text = f"Risk: {probability:.4f}" if probability is not None else "Risk: N/A"
@@ -108,18 +126,12 @@ if _st_button("Check Fraud", disabled=model is None):
     st.markdown("### 💹 Transaction Overview")
     input_df["Fraudulent"] = ["Yes" if prediction == 1 else "No"]
 
-    # Line chart: transaction amount over step
     line_chart = alt.Chart(input_df).mark_line(point=True, color='red' if prediction==1 else 'green').encode(
         x=alt.X('step', title="Step"),
         y=alt.Y('amount', title="Transaction Amount"),
         tooltip=['step', 'amount', 'type', 'Fraudulent']
-    ).properties(
-        width=700,
-        height=400,
-        title="Transaction Amount over Time"
-    )
+    ).properties(width=700, height=400, title="Transaction Amount over Time")
 
-    # Bar chart: sender vs receiver balances
     balance_df = pd.DataFrame({
         "Account": ["Sender (Old)", "Sender (New)", "Receiver (Old)", "Receiver (New)"],
         "Balance": [oldbalanceOrg, newbalanceOrig, oldbalanceDest, newbalanceDest]
@@ -129,11 +141,7 @@ if _st_button("Check Fraud", disabled=model is None):
         x='Account',
         y='Balance',
         tooltip=['Account', 'Balance']
-    ).properties(
-        width=700,
-        height=300,
-        title="Sender & Receiver Balances"
-    )
+    ).properties(width=700, height=300, title="Sender & Receiver Balances")
 
     st.altair_chart(line_chart, use_container_width=True)
     st.altair_chart(bar_chart, use_container_width=True)

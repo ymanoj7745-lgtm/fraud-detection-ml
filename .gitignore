@@ -12,8 +12,7 @@ env/
 # Local datasets / artifacts
 Fraud.csv
 
-fraud_detection_advanced_pipeline.pkl
-models/
+
 artifacts/
 
 # OS / editor

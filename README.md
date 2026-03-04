@@ -67,5 +67,6 @@ Then open the URL shown in the terminal. You can:
 ## Notes
 
 - `Fraud.csv` is intentionally kept out of version control (due to size and licensing); make sure you have a local copy.
+- **Version compatibility:** the pickled model is tied to the scikit-learn/joblib versions used during training. Deployments must install the *same* release used to create the artifact; otherwise you’ll see unpickling errors such as the dreaded `AttributeError: Can't get attribute '_RemainderColsList'` when a private helper class was removed between versions. To guarantee this, the current `requirements.txt` pins `scikit-learn==1.8.0` and `joblib==1.5.3` (matching the versions used to train the model included in this repo). If you ever upgrade or downgrade scikit-learn, retrain the model first and update both the requirements and the committed `.pkl` accordingly.
 - If you retrain the model, re-run `python train_model.py` and restart the Streamlit app to use the updated artifact.
 

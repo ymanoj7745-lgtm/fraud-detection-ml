@@ -2,15 +2,27 @@
 """
 Create a dummy fraud detection model for testing.
 This ensures the Streamlit app can load without a full dataset.
+
+This script generates a pickled model compatible with the current
+scikit-learn version in the environment.
+
+Usage:
+    python create_dummy_model.py
+
+Output:
+    models/fraud_detection_pipeline.pkl
 """
 import joblib
 import numpy as np
 import pandas as pd
 from pathlib import Path
+import sklearn
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.ensemble import RandomForestClassifier
+
+print(f"📦 Creating dummy model with scikit-learn {sklearn.__version__}...")
 
 # Create a minimal dataset
 X_dummy = pd.DataFrame([
@@ -28,12 +40,23 @@ X_dummy = pd.DataFrame([
 y_dummy = np.array([0, 1, 0, 1, 0])
 
 # Create proper preprocessing pipeline
-preprocessor = ColumnTransformer(
-    transformers=[
-        ('cat', OneHotEncoder(handle_unknown='ignore', sparse_output=False), ['type']),
-        ('num', StandardScaler(), ['step', 'amount', 'oldbalanceOrg', 'newbalanceOrig', 
-                                    'oldbalanceDest', 'newbalanceDest'])
-    ])
+# Use sparse_output parameter that's compatible with both old and new sklearn
+try:
+    # sklearn >= 1.2
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('cat', OneHotEncoder(handle_unknown='ignore', sparse_output=False), ['type']),
+            ('num', StandardScaler(), ['step', 'amount', 'oldbalanceOrg', 'newbalanceOrig', 
+                                        'oldbalanceDest', 'newbalanceDest'])
+        ])
+except TypeError:
+    # sklearn < 1.2 uses 'sparse' instead of 'sparse_output'
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('cat', OneHotEncoder(handle_unknown='ignore', sparse=False), ['type']),
+            ('num', StandardScaler(), ['step', 'amount', 'oldbalanceOrg', 'newbalanceOrig', 
+                                        'oldbalanceDest', 'newbalanceDest'])
+        ])
 
 # Create full pipeline
 pipeline = Pipeline([
@@ -44,16 +67,15 @@ pipeline = Pipeline([
 # Train on dummy data
 pipeline.fit(X_dummy, y_dummy)
 
-# report versions for debugging reproducibility
-import sklearn
-import joblib as _joblib
-print(f"scikit-learn version: {sklearn.__version__}")
-print(f"joblib version: {_joblib.__version__}")
-
 # Save the model
 model_path = Path(__file__).parent / "models" / "fraud_detection_pipeline.pkl"
 model_path.parent.mkdir(exist_ok=True)
 
 joblib.dump(pipeline, model_path)
-print(f"✅ Model saved to {model_path}")
-
+print(f"✅ Dummy model created successfully!")
+print(f"📍 Location: {model_path.resolve()}")
+print(f"📊 Model type: {type(pipeline).__name__}")
+print(f"🧠 Features: step, type, amount, oldbalanceOrg, newbalanceOrig, oldbalanceDest, newbalanceDest")
+print(f"🎯 Classes: Legitimate (0) and Fraudulent (1)")
+print(f"\n✨ Your Streamlit app should now load without errors!")
+print(f"   Run: streamlit run app.py")

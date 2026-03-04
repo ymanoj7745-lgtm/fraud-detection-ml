@@ -10,7 +10,7 @@
 altair==5.5.0
 attrs==25.4.0
 blinker==1.9.0
-cachetools==6.2.6
+cachetools>=4.0,<6
 certifi==2026.2.25
 charset-normalizer==3.4.4
 click==8.1.8
@@ -56,7 +56,7 @@ semver==3.0.4
 six==1.17.0
 smmap==5.0.2
 streamlit==1.29.0
-tenacity==9.1.2
+tenacity>=8.1.0,<9
 threadpoolctl>=3.2.0
 nltk==3.8.1
 toml==0.10.2

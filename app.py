@@ -1,3 +1,35 @@
+# CRITICAL: Inject sklearn compatibility stubs BEFORE any sklearn imports
+# This handles models pickled with sklearn 1.6.x loaded with sklearn 1.8.x+
+def _inject_sklearn_compatibility_stubs():
+    """
+    Inject missing sklearn private classes for backward compatibility.
+    Must be called before any joblib.load() or sklearn usage.
+    """
+    import sys
+    try:
+        # Inject stub BEFORE sklearn tries to load pickle references
+        from sklearn.compose import _column_transformer as _ct
+        from sklearn import tree
+        
+        # Handle _RemainderColsList (removed in sklearn 1.8.x)
+        if not hasattr(_ct, "_RemainderColsList"):
+            class _RemainderColsList:
+                """Stub for backward compat with pkl from sklearn <1.8"""
+                def __init__(self, *args, **kwargs):
+                    pass
+                def __reduce__(self):
+                    return (_RemainderColsList, ())
+            _ct._RemainderColsList = _RemainderColsList
+            
+        # Handle potential tree node class changes
+        if not hasattr(tree, "TREE_UNDEFINED"):
+            tree.TREE_UNDEFINED = -2
+            
+    except Exception as e:
+        pass  # Silently fail - shim is best-effort
+
+_inject_sklearn_compatibility_stubs()
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -56,13 +88,6 @@ def load_model() -> Tuple[Optional[Any], Optional[Path]]:
     if not model_path or not model_path.exists():
         return None, None
     
-    # ==================================================================
-    # CRITICAL: Compatibility shim for scikit-learn version mismatches
-    # Models pickled with older sklearn (1.6.x) break with newer sklearn
-    # (1.8.x) due to removed private classes. This shim injects stubs.
-    # ==================================================================
-    _inject_sklearn_compatibility_stubs()
-    
     try:
         model = joblib.load(model_path)
         return model, model_path
@@ -87,34 +112,6 @@ def load_model() -> Tuple[Optional[Any], Optional[Path]]:
     except Exception as e:
         st.error(f"❌ Unexpected error loading model: {type(e).__name__}: {str(e)[:100]}")
         return None, None
-
-
-def _inject_sklearn_compatibility_stubs():
-    """
-    Inject missing sklearn private classes for backward compatibility.
-    Handles models pickled with sklearn 1.6.x loaded with sklearn 1.8.x+
-    """
-    try:
-        from sklearn.compose import _column_transformer as _ct
-        from sklearn import tree
-        
-        # Handle _RemainderColsList (removed in sklearn 1.8.x)
-        if not hasattr(_ct, "_RemainderColsList"):
-            class _RemainderColsList:  # type: ignore
-                """Stub for backward compat with pkl from sklearn <1.8"""
-                def __init__(self, *args, **kwargs):
-                    pass
-                def __reduce__(self):
-                    return (_RemainderColsList, ())
-            _ct._RemainderColsList = _RemainderColsList
-            
-        # Handle potential tree node class changes
-        if not hasattr(tree, "TREE_UNDEFINED"):
-            tree.TREE_UNDEFINED = -2
-            
-    except Exception as e:
-        # Silently fail - shim is best-effort
-        pass
 
 model, MODEL_PATH = load_model()
 
